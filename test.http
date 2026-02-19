@@ -1,0 +1,6 @@
+# @name roomSession
+# @websocket timeout=10s idle-timeout=4s
+# @ws wait 10000 
+# @ws send-json {"content": "Hello World!"}
+# @ws close 1000 "client done"
+get ws://localhost:8080/ws 
