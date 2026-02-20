@@ -3,7 +3,7 @@ package ws
 import (
 	"context"
 	"errors"
-	"sync" // Added sync
+	"sync"
 
 	"github.com/Wyydra/ya/internal/core/domain"
 	"github.com/rs/zerolog/log"
@@ -38,13 +38,13 @@ func (h *Hub) BroadcastMessage(ctx context.Context, msg domain.Message) error {
 	return nil
 }
 
-func (h *Hub) SendCallSignal(ctx context.Context, userID domain.UserID, negotiation domain.CallNegotiation) error {
+func (h *Hub) SendSignal(ctx context.Context, userID domain.UserID, signal domain.Signal) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	for client := range h.clients {
 		if client.ID() == userID.String() {
-			return client.SendCall(negotiation)
+			return client.SendSignal(signal)
 		}
 	}
 	return nil // Client not found, maybe offline, ignore or error

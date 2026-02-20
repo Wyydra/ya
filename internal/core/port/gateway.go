@@ -8,6 +8,6 @@ import (
 
 type RealTimeGateway interface {
 	BroadcastMessage(ctx context.Context, msg domain.Message) error
-	SendCallSignal(ctx context.Context, userID domain.UserID, negotiation domain.CallNegotiation) error
+	SendSignal(ctx context.Context, userID domain.UserID, signal domain.Signal) error
 	NotifyUserJoined(ctx context.Context, roomID domain.RoomID, userID domain.UserID) error
 }

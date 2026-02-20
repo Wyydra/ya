@@ -9,34 +9,48 @@ import (
 )
 
 type CallService struct {
-	engine  port.CallEngine
+	media  port.MediaEngine
 	gateway port.RealTimeGateway
 }
 
-func NewCallService(engine port.CallEngine, gateway port.RealTimeGateway) *CallService {
-	return &CallService{
-		engine:  engine,
+func NewCallService(media port.MediaEngine, gateway port.RealTimeGateway) *CallService {
+	s := &CallService{
+		media:   media,
 		gateway: gateway,
 	}
-}
-
-func (s *CallService) HandleSignal(ctx context.Context, neg domain.CallNegotiation) error {
-	switch neg.Intent {
-	case domain.IntentJoin:
-		response, err := s.engine.ProcessJoin(neg)
-		if err != nil {
-			log.Err(err).Msg("CallEngine error")
-			return err
+	
+	media.SetSignalCallback(func(sessionID domain.SessionID, userID domain.UserID, signal domain.Signal) {
+		// TODO: context ?
+		if err := gateway.SendSignal(context.Background(), userID, signal); err != nil {
+			log.Error().Err(err).
+				Str("sessionID", sessionID.String()).
+				Str("userID", userID.String()).
+				Msg("failed to send signal to gateway")
 		}
-		
-		return s.gateway.SendCallSignal(ctx, neg.UserID, response) // Send back to caller
-	case domain.IntentNetwork:
-		return s.engine.AddNetworkRoute(neg)
-	default:
-		return nil
-	}
+	})
+	
+	return s
 }
 
-func (s *CallService) LeaveCall(ctx context.Context, userID domain.UserID) error {
-	return s.engine.TerminateCall(userID)
+func (s *CallService) JoinCall(ctx context.Context, roomID domain.RoomID, userID domain.UserID) error {
+	// map RoomID -> SesssionID //TODO: is it good?
+	sessionID := domain.SessionID(roomID.String())
+	
+	offer, err := s.media.AddPeer(sessionID, userID)
+	if err != nil {
+		return err
+	}
+
+	return s.gateway.SendSignal(ctx, userID, offer)
+}
+
+func (s *CallService) HandleSignal(ctx context.Context, userID domain.UserID, roomID domain.RoomID, signal domain.Signal) error {
+	sessionID := domain.SessionID(roomID.String()) //TODO is it good ?
+	return s.media.HandleSignal(sessionID, userID, signal)
+}
+
+func (s *CallService) LeaveCall(ctx context.Context, roomID domain.RoomID, userID domain.UserID) error {
+	sessionID := domain.SessionID(roomID.String())
+	s.media.RemovePeer(sessionID, userID)
+	return nil
 }

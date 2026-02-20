@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Wyydra/ya/internal/adapter/driven/call/memory"
-	repo "github.com/Wyydra/ya/internal/adapter/driven/persistence/memory"
 	"github.com/Wyydra/ya/internal/adapter/driven/gateway/ws"
+	"github.com/Wyydra/ya/internal/adapter/driven/media/pion"
+	repo "github.com/Wyydra/ya/internal/adapter/driven/persistence/memory"
 	handler "github.com/Wyydra/ya/internal/adapter/driving/http"
 	"github.com/Wyydra/ya/internal/core/service"
 	"github.com/rs/zerolog"
@@ -23,11 +23,12 @@ func main() {
 	l := zerolog.New(w).With().Timestamp().Caller().Logger()
 
 	repo := repo.NewMessageRepository()
-	callEngine := memory.NewCallEngine()
 	hub := ws.NewHub()
+
+	mediaEngine := pion.NewPionAdapter()
 	
 	chatService := service.NewChatService(repo, hub)
-	callService := service.NewCallService(callEngine, hub)
+	callService := service.NewCallService(mediaEngine, hub)
 	h := handler.NewHandler(chatService, callService, hub)
 
 	go hub.Run()

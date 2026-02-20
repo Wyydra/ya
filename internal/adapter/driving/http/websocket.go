@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/Wyydra/ya/internal/core/domain"
@@ -8,9 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const DemoRoomID = "db31e952-84dd-40c4-9bed-b7ddd35ba5b8"
+
 var upgrader = websocket.Upgrader {
-	ReadBufferSize: 1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize: 4096,
+	WriteBufferSize: 4096,
 	// TODO: only for dev
 	CheckOrigin: func(r *http.Request) bool {return true},
 }
@@ -42,11 +45,10 @@ func (c *WSClient) Close() error {
 	return c.conn.Close()
 }
 
-func (c* WSClient) SendCall(neg domain.CallNegotiation) error {
+func (c* WSClient) SendSignal(signal domain.Signal) error {
 	return c.conn.WriteJSON(map[string]interface{}{
-		"event": "call_signal",
-		"intent": neg.Intent,
-		"paylaod": string(neg.Payload),
+		"type":    "signal",
+		"payload": signal,
 	})
 }
 
@@ -73,9 +75,21 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		l.Info().Msg("Client disconnected")
 		h.Hub.Unregister(client)
+		
+		// Cleanup SFU peer
+		// Using the same hardcoded RoomID as below
+		roomID, _ := domain.NewRoomIDFromString(DemoRoomID)
+		if err := h.CallService.LeaveCall(r.Context(), roomID, client.id); err != nil {
+             // benign error
+        }
+		
 		conn.Close()
 	}()
 
+	// TODO: Parse RoomID from request or context
+	// For now, use a constant RoomID so everyone joins the same room
+	roomID, _ := domain.NewRoomIDFromString(DemoRoomID) // Use a fixed UUID for testing
+	
 	// listening for browser
 	for {
 		type incomingDTO struct {
@@ -94,18 +108,28 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			break 
 		}
 
-		// TODO: Parse RoomID from request or context
-		roomID := domain.NewRoomID() 
+		type incomingSignalDTO struct {
+			Type    string `json:"type"`    // "offer", "answer", "candidate"
+			Payload string `json:"payload"` // The opaque SDP/ICE string
+		}
 
-		if req.Type == "call_signal" {
-			neg := domain.CallNegotiation{
-				UserID:  client.id,
-				RoomID:  roomID,
-				Intent:  domain.CallIntent(req.Intent), // Cast string to CallIntent
-				Payload: []byte(req.Payload),
+		if req.Type == "signal" {
+			var sigDTO incomingSignalDTO
+			if err := json.Unmarshal([]byte(req.Payload), &sigDTO); err != nil {
+				l.Error().Err(err).Msg("Invalid signal payload")
+				continue
 			}
-			if err := h.CallService.HandleSignal(r.Context(), neg); err != nil {
-				l.Error().Err(err).Msg("Failed to handle call signal")
+
+			sig := domain.NewSignal(domain.SignalType(sigDTO.Type), sigDTO.Payload)
+
+			if err := h.CallService.HandleSignal(r.Context(), client.id, roomID, sig); err != nil {
+				l.Error().Err(err).Msg("Failed to handle signal")
+			}
+
+		} else if req.Type == "join_call" {
+			// Trigger the JoinCall flow (Server will create Offer)
+			if err := h.CallService.JoinCall(r.Context(), roomID, client.id); err != nil {
+				l.Error().Err(err).Msg("Failed to join call")
 			}
 		} else {
 			// Default to chat
