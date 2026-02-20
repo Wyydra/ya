@@ -12,7 +12,7 @@ const socket = new WebSocket(wsUrl);
 
 socket.onopen = () => {
     console.log('WebSocket Connection Open');
-    addSystemMessage('Connecté au serveur de chat !');
+    addSystemMessage('Connected to chat server!');
 };
 
 socket.onmessage = (event) => {
@@ -26,12 +26,12 @@ socket.onmessage = (event) => {
 
 socket.onclose = (event) => {
     console.log('WebSocket Connection Closed', event);
-    addSystemMessage('Déconnecté du serveur.');
+    addSystemMessage('Disconnected from server.');
 };
 
 socket.onerror = (error) => {
     console.error('WebSocket Error:', error);
-    addSystemMessage('Erreur de connexion.');
+    addSystemMessage('Connection error.');
 };
 
 // Handle form submission
@@ -44,7 +44,7 @@ inputZone.addEventListener('submit', (e) => {
         socket.send(JSON.stringify(payload));
         msgInput.value = '';
     } else if (socket.readyState !== WebSocket.OPEN) {
-        addSystemMessage('Impossible d\'envoyer le message : pas de connexion.');
+        addSystemMessage('Cannot send message: no connection.');
     }
 });
 

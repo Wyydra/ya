@@ -8,7 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Wyydra/ya/internal/adapter/handler"
+	"github.com/Wyydra/ya/internal/adapter/driven/call/memory"
+	repo "github.com/Wyydra/ya/internal/adapter/driven/persistence/memory"
+	"github.com/Wyydra/ya/internal/adapter/driven/gateway/ws"
+	handler "github.com/Wyydra/ya/internal/adapter/driving/http"
 	"github.com/Wyydra/ya/internal/core/service"
 	"github.com/rs/zerolog"
 )
@@ -19,12 +22,16 @@ func main() {
 	w := zerolog.ConsoleWriter{Out: os.Stdout}
 	l := zerolog.New(w).With().Timestamp().Caller().Logger()
 
-	roomService := service.NewRoomService()
-	go roomService.Run()
+	repo := repo.NewMessageRepository()
+	callEngine := memory.NewCallEngine()
+	hub := ws.NewHub()
+	
+	chatService := service.NewChatService(repo, hub)
+	callService := service.NewCallService(callEngine, hub)
+	h := handler.NewHandler(chatService, callService, hub)
 
-	h := handler.NewHandler(roomService)
+	go hub.Run()
 
-	// Router is now encapsulated in the adapter layer
 	r := h.NewRouter()
 
 	srv := &http.Server{
@@ -52,6 +59,6 @@ func main() {
 		l.Error().Err(err).Msg("Server forced to shutdown")
 	}
 
-	roomService.Stop()
+	hub.Stop()
 	l.Info().Msg("Server exited")
 }

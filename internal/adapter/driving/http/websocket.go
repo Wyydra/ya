@@ -1,10 +1,9 @@
-package handler
+package http
 
 import (
 	"net/http"
 
 	"github.com/Wyydra/ya/internal/core/domain"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 )
@@ -17,22 +16,22 @@ var upgrader = websocket.Upgrader {
 }
 
 type WSClient struct {
-	id string
+	id domain.UserID
 	conn *websocket.Conn
 }
 
 func (c *WSClient) ID() string {
-	return c.id
+	return c.id.String()
 }
 
-func (c *WSClient) Send(msg domain.Message) error {
+func (c *WSClient) SendText(msg domain.Message) error {
 	type messageDTO struct {
 		SenderID string `json:"sender_id"`
 		Content string `json:"content"`
 	}
 
 	dto := messageDTO {
-		SenderID: msg.SenderID,
+		SenderID: msg.SenderID.String(),
 		Content: msg.Content,
 	}
 
@@ -43,6 +42,14 @@ func (c *WSClient) Close() error {
 	return c.conn.Close()
 }
 
+func (c* WSClient) SendCall(neg domain.CallNegotiation) error {
+	return c.conn.WriteJSON(map[string]interface{}{
+		"event": "call_signal",
+		"intent": neg.Intent,
+		"paylaod": string(neg.Payload),
+	})
+}
+
 // HTTP handler
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -51,29 +58,31 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientID := uuid.New().String()
+	clientID := domain.NewUserID()
 	
 	client := &WSClient{
 		id:   clientID,
 		conn: conn,
 	}
 
-	// Contextual logging for this connection
-	l := log.With().Str("client_id", clientID).Logger()
+	l := log.With().Str("client_id", clientID.String()).Logger()
 	l.Info().Msg("New client connected")
 
-	h.RoomService.Join(client)
+	h.Hub.Register(client)
 
 	defer func() {
 		l.Info().Msg("Client disconnected")
-		h.RoomService.Leave(client)
+		h.Hub.Unregister(client)
 		conn.Close()
 	}()
 
 	// listening for browser
 	for {
 		type incomingDTO struct {
+			Type    string `json:"type"`
 			Content string `json:"content"`
+			Intent  string `json:"intent"`
+			Payload string `json:"payload"`
 		}
 
 		var req incomingDTO
@@ -85,11 +94,26 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			break 
 		}
 
-		domainMsg := domain.Message{
-			SenderID: client.ID(),
-			Content:  req.Content,
+		// TODO: Parse RoomID from request or context
+		roomID := domain.NewRoomID() 
+
+		if req.Type == "call_signal" {
+			neg := domain.CallNegotiation{
+				UserID:  client.id,
+				RoomID:  roomID,
+				Intent:  domain.CallIntent(req.Intent), // Cast string to CallIntent
+				Payload: []byte(req.Payload),
+			}
+			if err := h.CallService.HandleSignal(r.Context(), neg); err != nil {
+				l.Error().Err(err).Msg("Failed to handle call signal")
+			}
+		} else {
+			// Default to chat
+			err = h.ChatService.SendMessage(r.Context(), client.id, roomID, req.Content)
+			if err != nil {
+				l.Error().Err(err).Msg("Failed to process message")
+				continue
+			}
 		}
-		
-		h.RoomService.BroadcastMessage(domainMsg)
 	}
 }

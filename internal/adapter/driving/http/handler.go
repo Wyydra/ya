@@ -1,20 +1,25 @@
-package handler
+package http
 
 import (
 	"net/http"
 
+	"github.com/Wyydra/ya/internal/adapter/driven/gateway/ws"
 	"github.com/Wyydra/ya/internal/core/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Handler struct {
-	RoomService *service.RoomService
+	ChatService *service.ChatService
+	CallService *service.CallService
+	Hub         *ws.Hub
 }
 
-func NewHandler(roomService *service.RoomService) *Handler {
+func NewHandler(chatService *service.ChatService, callService *service.CallService, hub *ws.Hub) *Handler {
 	return &Handler{
-		RoomService: roomService,
+		ChatService: chatService,
+		CallService: callService,
+		Hub:         hub,
 	}
 }
 
