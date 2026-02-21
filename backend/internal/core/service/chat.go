@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/Wyydra/ya/internal/core/domain"
-	"github.com/Wyydra/ya/internal/core/port"
+	"github.com/Wyydra/ya/backend/internal/core/domain"
+	"github.com/Wyydra/ya/backend/internal/core/port"
 )
 
 type ChatService struct {

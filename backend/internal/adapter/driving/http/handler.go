@@ -3,8 +3,8 @@ package http
 import (
 	"net/http"
 
-	"github.com/Wyydra/ya/internal/adapter/driven/gateway/ws"
-	"github.com/Wyydra/ya/internal/core/service"
+	"github.com/Wyydra/ya/backend/internal/adapter/driven/gateway/ws"
+	"github.com/Wyydra/ya/backend/internal/core/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

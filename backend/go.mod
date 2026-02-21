@@ -1,4 +1,4 @@
-module github.com/Wyydra/ya
+module github.com/Wyydra/ya/backend
 
 go 1.25.5
 

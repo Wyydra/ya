@@ -1,6 +1,6 @@
 package port
 
-import "github.com/Wyydra/ya/internal/core/domain"
+import "github.com/Wyydra/ya/backend/internal/core/domain"
 
 type MediaEngine interface {
 	AddPeer(sessionID domain.SessionID, userID domain.UserID) (offer domain.Signal, err error)

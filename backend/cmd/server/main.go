@@ -8,11 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Wyydra/ya/internal/adapter/driven/gateway/ws"
-	"github.com/Wyydra/ya/internal/adapter/driven/media/pion"
-	repo "github.com/Wyydra/ya/internal/adapter/driven/persistence/memory"
-	handler "github.com/Wyydra/ya/internal/adapter/driving/http"
-	"github.com/Wyydra/ya/internal/core/service"
+	"github.com/Wyydra/ya/backend/internal/adapter/driven/gateway/ws"
+	"github.com/Wyydra/ya/backend/internal/adapter/driven/media/pion"
+	repo "github.com/Wyydra/ya/backend/internal/adapter/driven/persistence/memory"
+	handler "github.com/Wyydra/ya/backend/internal/adapter/driving/http"
+	"github.com/Wyydra/ya/backend/internal/core/service"
 	"github.com/rs/zerolog"
 )
 

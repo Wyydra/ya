@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Wyydra/ya/internal/core/domain"
+	"github.com/Wyydra/ya/backend/internal/core/domain"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 	"github.com/rs/zerolog/log"

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Wyydra/ya/internal/core/domain"
+	"github.com/Wyydra/ya/backend/internal/core/domain"
 	"github.com/rs/zerolog/log"
 )
 
