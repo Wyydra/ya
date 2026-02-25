@@ -1,0 +1,15 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "desktop",
+  "outputfilename": "desktop",
+  "wailsjsdir": "./frontend/wailsjs",
+  "build:tags": "webkit2_41",
+  "frontend:dir": "../app",
+  "frontend:build": "npm run build:web",
+  "frontend:dev:watcher": "npm run web",
+  "frontend:dev:serverUrl": "http://localhost:8085",
+  "author": {
+    "name": "Wyydra",
+    "email": "[EMAIL_ADDRESS]"
+  }
+}
